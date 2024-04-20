@@ -282,19 +282,24 @@ public class Functions {
         }
     }
 
-    @PostMapping("/insertInvoice")
+    @PostMapping("/InsertInvoice")
     public String insertInvoice(@RequestBody Invoice invoice) {
         try {
-            String query = "EXEC InsertInvoice ?, ?, ?, ?, ?, ?";
-            jdbcTemplate.update(query, invoice.getProductId(), invoice.getName(),
-                    invoice.getQuantity(), invoice.getUnit(),
-                    invoice.getGst(), invoice.getTotal());
+            // Execute the SQL insert query to insert a new invoice
+            jdbcTemplate.update("EXEC InsertInvoice ?, ?, ?, ?, ?, ?",
+                    invoice.getProductId(),
+                    invoice.getName(),
+                    invoice.getQuantity(),
+                    invoice.getUnit(),
+                    invoice.getGst(),
+                    invoice.getTotal());
             return "Invoice inserted successfully.";
         } catch (Exception e) {
             e.printStackTrace();
             return "Failed to insert invoice. Error: " + e.getMessage();
         }
     }
+
 
     @DeleteMapping("/deleteInvoice/{invoiceId}")
     public String deleteInvoice(@PathVariable int invoiceId) {
