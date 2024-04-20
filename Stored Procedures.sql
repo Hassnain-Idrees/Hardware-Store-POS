@@ -56,7 +56,7 @@ BEGIN
 END;
 
 -- Login
-CREATE PROCEDURE CashierLoginProcedure1
+CREATE PROCEDURE CashierLoginProcedure
     @cashier_id INT,
     @password VARCHAR(255)
 AS
@@ -70,7 +70,7 @@ BEGIN
     IF @actual_password IS NOT NULL AND @actual_password = @password
     BEGIN
         -- Password matched, return success message or any additional actions
-        SELECT 'Login successful.' AS Message;
+        SELECT @actual_password AS Message;
     END
     ELSE
     BEGIN
@@ -152,7 +152,7 @@ BEGIN
     IF @actual_password IS NOT NULL AND @actual_password = @password
     BEGIN
         -- Password matched, return success message or any additional actions
-        SELECT 'Login successful.' AS Message;
+        SELECT @actual_password AS Message;
     END
     ELSE
     BEGIN
