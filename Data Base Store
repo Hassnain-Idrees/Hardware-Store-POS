@@ -1,4 +1,4 @@
-package com.hardwarestore.hardwarestore.hmd;
+package com.hardwarestore.hardwarestore.cont;
 import com.hardwarestore.hardwarestore.All_Classes.Customer;
 import com.hardwarestore.hardwarestore.All_Classes.Product;
 import com.hardwarestore.hardwarestore.All_Classes.Invoice;
@@ -22,9 +22,10 @@ import org.springframework.web.bind.annotation.PathVariable;
 
 import java.util.List;
 import java.util.Map;
+import java.util.HashMap;
 
 @RestController
-public class Functions {
+public class DatabaseController {
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
@@ -76,7 +77,7 @@ public class Functions {
     public String Cashierlogin(@RequestParam("cashierId") int cashierId, @RequestParam("password") String password) {
         try {
             String actualPassword = jdbcTemplate.queryForObject(
-                    "EXEC CashierLoginProcedure1 ?, ?",
+                    "EXEC CashierLoginProcedure ?, ?",
                     new Object[]{cashierId, password},
                     String.class);
 
@@ -131,8 +132,8 @@ public class Functions {
             return "Failed to update owner password. Error: " + e.getMessage();
         }
     }
-    @PostMapping("/OwnerLogin")
-    public String Ownerlogin(int ownerId, String password) {
+    @GetMapping("/OwnerLogin")
+    public String Ownerlogin(@RequestParam("ownerId") int ownerId, @RequestParam("password") String password){
         try {
             String actualPassword = jdbcTemplate.queryForObject(
                     "EXEC OwnerLoginProcedure ?, ?",
@@ -199,6 +200,7 @@ public class Functions {
 
     @PostMapping("/InsertProduct")
     public String insertProduct(@RequestBody Product product) {
+        System.out.println(product.getName());
         try {
             // Execute the SQL insert query to insert a new product
             jdbcTemplate.update("EXEC InsertProduct ?, ?, ?, ?, ?, ?", product.getName(), product.getCompanyName(),
@@ -366,6 +368,44 @@ public class Functions {
             e.printStackTrace();
             return "Failed to update invoice. Error: " + e.getMessage();
         }
+    }
+    @GetMapping("/getAllProducts")
+    public List<Map<String, Object>> getAllProducts() {
+        String sql = "SELECT * FROM Product";
+        List<Map<String, Object>> products = jdbcTemplate.queryForList(sql);
+        return products;
+    }
+    @GetMapping("/getAllCustomers")
+    public List<Map<String, Object>> getAllCustomers() {
+        String sql = "SELECT * FROM Customer";
+        List<Map<String, Object>> products = jdbcTemplate.queryForList(sql);
+        return products;
+    }
+    @GetMapping("/getProductsName")
+    public List<Map<String, Object>> getProductsName() {
+        String sql = "SELECT name from Product";
+        List<Map<String, Object>> products = jdbcTemplate.queryForList(sql);
+        return products;
+    }
+
+
+    @GetMapping("/getProductQuantity")
+    public Integer getProductQuantity(@RequestParam String productName) {
+        String sql = "SELECT unit_quantity FROM Product WHERE name = ?";
+        Integer quantity = jdbcTemplate.queryForObject(sql, new Object[]{productName}, Integer.class);
+        return quantity;
+    }
+    @GetMapping("/getProductRate")
+    public Integer getProductRate(@RequestParam String productName) {
+        String sql = "SELECT sales_price FROM Product WHERE name = ?";
+        Integer quantity = jdbcTemplate.queryForObject(sql, new Object[]{productName}, Integer.class);
+        return quantity;
+    }
+    @GetMapping("/getProductTax")
+    public Integer getProductTax(@RequestParam String productName) {
+        String sql = "SELECT tax FROM Product WHERE name = ?";
+        Integer quantity = jdbcTemplate.queryForObject(sql, new Object[]{productName}, Integer.class);
+        return quantity;
     }
 
 }
