@@ -407,5 +407,57 @@ public class DatabaseController {
         Integer quantity = jdbcTemplate.queryForObject(sql, new Object[]{productName}, Integer.class);
         return quantity;
     }
+ @GetMapping("/getProductID")
+    public Integer getProductID(@RequestParam String productName) {
+        String sql = "SELECT product_id FROM Product WHERE name = ?";
+        Integer id = jdbcTemplate.queryForObject(sql, new Object[]{productName}, Integer.class);
+        return id;
+    }
+
+
+
+    @PostMapping("/InsertInvoice1")
+    public String insertInvoice1(@RequestBody Invoice invoice) {
+        try (Connection conn = dataSource.getConnection();
+             CallableStatement cstmt = conn.prepareCall("{call CreateInvoice(?, ?, ?, ?)}")) {
+
+            cstmt.setInt(1, invoice.getCustomerId());
+            cstmt.setDate(2, new java.sql.Date(invoice.getInvoiceDate().getTime()));
+            cstmt.setBigDecimal(3, invoice.getTotal().setScale(2, RoundingMode.HALF_UP));
+
+            SQLServerDataTable tvp = new SQLServerDataTable();
+            tvp.addColumnMetadata("product_id", Types.INTEGER);
+            tvp.addColumnMetadata("name", Types.NVARCHAR);
+            tvp.addColumnMetadata("quantity", Types.INTEGER);
+            tvp.addColumnMetadata("unit", Types.NVARCHAR);
+            tvp.addColumnMetadata("gst", Types.DECIMAL);
+            tvp.addColumnMetadata("unit_price", Types.DECIMAL);
+            tvp.addColumnMetadata("subtotal", Types.DECIMAL);
+
+            for (InvoiceProduct product : invoice.getProducts()) {
+                int a = product.getProductId();
+                String b = product.getName();
+                int c = product.getQuantity();
+                String d = product.getUnit();
+                BigDecimal e = product.getGstApplied().setScale(2, RoundingMode.HALF_UP);
+                BigDecimal f = product.getUnitPrice().setScale(2, RoundingMode.HALF_UP);
+                BigDecimal g = product.getSubtotal().setScale(2, RoundingMode.HALF_UP);
+
+                // Additional validation to ensure precision does not exceed your SQL column settings
+                e = e.precision() > 10 ? e.setScale(2, RoundingMode.DOWN) : e;
+                f = f.precision() > 10 ? f.setScale(2, RoundingMode.DOWN) : f;
+                g = g.precision() > 10 ? g.setScale(2, RoundingMode.DOWN) : g;
+
+                tvp.addRow(a, b, c, d, e, f, g);
+            }
+
+            cstmt.setObject(4, tvp);
+            cstmt.execute();
+            return "Invoice inserted successfully.";
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return "Failed to insert invoice due to: " + e.getMessage();
+        }
+    }
 
 }
