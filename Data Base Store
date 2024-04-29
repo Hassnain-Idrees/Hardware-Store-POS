@@ -3,6 +3,7 @@ import com.hardwarestore.hardwarestore.All_Classes.Customer;
 import com.hardwarestore.hardwarestore.All_Classes.Product;
 import com.hardwarestore.hardwarestore.All_Classes.Invoice;
 import com.hardwarestore.hardwarestore.All_Classes.Forecast;
+import com.hardwarestore.hardwarestore.All_Classes.InvoiceProduct;
 import com.hardwarestore.hardwarestore.All_Classes.Return;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -18,17 +19,40 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.PathVariable;
-
+import org.springframework.jdbc.core.simple.SimpleJdbcCall;
+import org.springframework.jdbc.core.namedparam.SqlParameterSource;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 
 import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
+import javax.sql.DataSource;
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.sql.Types;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import javax.sql.DataSource;
+import java.sql.CallableStatement;
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.sql.Types;
+import com.microsoft.sqlserver.jdbc.SQLServerDataTable;
+
+
 
 @RestController
 public class DatabaseController {
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
+    @Autowired(required = true)
+    private DataSource dataSource;
+
 
     @PostMapping("/InsertCashier")
     public String insertCashier(@RequestBody String password) {
@@ -329,13 +353,13 @@ public class DatabaseController {
     public String insertInvoice(@RequestBody Invoice invoice) {
         try {
             // Execute the SQL insert query to insert a new invoice
-            jdbcTemplate.update("EXEC InsertInvoice ?, ?, ?, ?, ?, ?",
-                    invoice.getProductId(),
-                    invoice.getName(),
-                    invoice.getQuantity(),
-                    invoice.getUnit(),
-                    invoice.getGst(),
-                    invoice.getTotal());
+            jdbcTemplate.update("EXEC InsertInvoice ?, ?, ?, ?, ?, ?");
+//                    invoice.getProductId(),
+//                    invoice.getName(),
+//                    invoice.getQuantity(),
+//                    invoice.getUnit(),
+//                    invoice.getGst(),
+//                    invoice.getTotal());
             return "Invoice inserted successfully.";
         } catch (Exception e) {
             e.printStackTrace();
@@ -360,9 +384,9 @@ public class DatabaseController {
     public String updateInvoice(@PathVariable int invoiceId, @RequestBody Invoice invoice) {
         try {
             String query = "EXEC UpdateInvoice ?, ?, ?, ?, ?, ?, ?";
-            jdbcTemplate.update(query, invoiceId, invoice.getProductId(), invoice.getName(),
-                    invoice.getQuantity(), invoice.getUnit(),
-                    invoice.getGst(), invoice.getTotal());
+//            jdbcTemplate.update(query, invoiceId, invoice.getProductId(), invoice.getName(),
+//                    invoice.getQuantity(), invoice.getUnit(),
+//                    invoice.getGst(), invoice.getTotal());
             return "Invoice updated successfully.";
         } catch (Exception e) {
             e.printStackTrace();
@@ -407,7 +431,7 @@ public class DatabaseController {
         Integer quantity = jdbcTemplate.queryForObject(sql, new Object[]{productName}, Integer.class);
         return quantity;
     }
- @GetMapping("/getProductID")
+    @GetMapping("/getProductID")
     public Integer getProductID(@RequestParam String productName) {
         String sql = "SELECT product_id FROM Product WHERE name = ?";
         Integer id = jdbcTemplate.queryForObject(sql, new Object[]{productName}, Integer.class);
@@ -459,5 +483,4 @@ public class DatabaseController {
             return "Failed to insert invoice due to: " + e.getMessage();
         }
     }
-
 }
