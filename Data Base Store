@@ -8,7 +8,7 @@ import com.hardwarestore.hardwarestore.All_Classes.Return;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
-
+import org.springframework.jdbc.core.RowMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -24,7 +24,7 @@ import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-
+import java.sql.ResultSet;
 import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
@@ -42,6 +42,8 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Types;
 import com.microsoft.sqlserver.jdbc.SQLServerDataTable;
+import org.springframework.http.ResponseEntity;
+import org.springframework.http.HttpStatus;
 
 
 
@@ -447,49 +449,128 @@ public class DatabaseController {
 
             cstmt.setInt(1, invoice.getCustomerId());
             cstmt.setDate(2, new java.sql.Date(invoice.getInvoiceDate().getTime()));
-            cstmt.setBigDecimal(3, invoice.getTotal().setScale(2, RoundingMode.HALF_UP));
+            cstmt.setString(3, invoice.getTotal());
 
             SQLServerDataTable tvp = new SQLServerDataTable();
             tvp.addColumnMetadata("product_id", Types.INTEGER);
             tvp.addColumnMetadata("name", Types.NVARCHAR);
             tvp.addColumnMetadata("quantity", Types.INTEGER);
             tvp.addColumnMetadata("unit", Types.NVARCHAR);
-            tvp.addColumnMetadata("gst", Types.DECIMAL);
-            tvp.addColumnMetadata("unit_price", Types.DECIMAL);
-            tvp.addColumnMetadata("subtotal", Types.DECIMAL);
-
+            tvp.addColumnMetadata("gst", Types.VARCHAR);
+            tvp.addColumnMetadata("unit_price", Types.VARCHAR);
+            tvp.addColumnMetadata("subtotal", Types.VARCHAR);
             for (InvoiceProduct product : invoice.getProducts()) {
                 int a = product.getProductId();
                 String b = product.getName();
                 int c = product.getQuantity();
                 String d = product.getUnit();
-                BigDecimal e = product.getGstApplied().setScale(2, RoundingMode.HALF_UP);
-                BigDecimal f = product.getUnitPrice().setScale(2, RoundingMode.HALF_UP);
-                BigDecimal g = product.getSubtotal().setScale(2, RoundingMode.HALF_UP);
 
-                // Additional validation to ensure precision does not exceed your SQL column settings
-                e = e.precision() > 10 ? e.setScale(2, RoundingMode.DOWN) : e;
-                f = f.precision() > 10 ? f.setScale(2, RoundingMode.DOWN) : f;
-                g = g.precision() > 10 ? g.setScale(2, RoundingMode.DOWN) : g;
+                // Original values with scale adjustment
+              String e = product.getGstApplied();
+                String f = product.getUnitPrice();
+                String g = product.getSubtotal();
 
-                tvp.addRow(a, b, c, d, e, f, g);
+                // Pass the corrected values to the row addition method
+                tvp.addRow(a, b, c, d, e,f,g);
             }
+
 
             cstmt.setObject(4, tvp);
             cstmt.execute();
-            return "Invoice inserted successfully.";
+            return "Invoice created successfully.";
         } catch (SQLException e) {
             e.printStackTrace();
             return "Failed to insert invoice due to: " + e.getMessage();
         }
     }
-  ///Hassnain K functions Owner k
+    @GetMapping("/countInvoices")
+    public Integer countInvoices() {
+        String sql = "SELECT COUNT(*) FROM Invoice";
+        Integer count = jdbcTemplate.queryForObject(sql, Integer.class);
+        return count;
+    }
+    @PutMapping("/UpdateProductQuantity/{productId}")
+    public String updateProductQuantity(@PathVariable int productId, @RequestParam int quantity) {
+        try {
+            // Define the SQL query to update the product quantity
+            String sql = "UPDATE Product SET unit_quantity = unit_quantity - ? WHERE product_id = ?";
+
+            // Execute the update
+            int rowsAffected = jdbcTemplate.update(sql, quantity, productId);
+            if (rowsAffected > 0) {
+                return "Product quantity updated successfully.";
+            } else {
+                return "No product found with ID: " + productId;
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "Failed to update product quantity. Error: " + e.getMessage();
+        }
+    }
+
+    @GetMapping("/checkCustomer")
+    public Integer checkCustomer(@RequestParam int id) {
+        String sql = "SELECT COUNT(*) FROM Customer WHERE customer_id = ?";
+        Integer count = jdbcTemplate.queryForObject(sql, new Object[]{id}, Integer.class);
+        return (count != null && count > 0) ? 1 : 0;
+    }
+
+    @GetMapping("/getInvoiceDetails")
+    public ResponseEntity<?> getInvoiceDetails(@RequestParam int invoiceId) {
+        try {
+            String sql = "SELECT  p.name AS product_name, p.unit_price AS sale_price, " +
+                    "p.quantity, p.unit, p.gst AS tax, p.subtotal, i.total AS grand_total " +
+                    "FROM dbo.Invoice i " +
+                    "JOIN dbo.InvoiceProduct p ON i.invoice_id = p.invoice_id " +
+                    "WHERE i.invoice_id = ?";
+
+            List<String> invoiceDetails = jdbcTemplate.query(sql, new Object[]{invoiceId}, (rs, rowNum) ->
+                    String.format("%s, %.2f,%.2f,%s,%.2f,%.2f",
+                             rs.getString("product_name"), rs.getDouble("sale_price"),
+                            rs.getDouble("quantity"), rs.getString("unit"), rs.getDouble("tax"),
+                            rs.getDouble("subtotal"))
+            );
+
+            return ResponseEntity.ok(invoiceDetails);
+        } catch (Exception e) {
+            // Log the exception details to help with debugging
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to retrieve invoice details: " + e.getMessage());
+        }
+    }
+    @GetMapping("/getInvoiceDate")
+    public String getInvoiceDate(@RequestParam int product) {
+        String sql = "SELECT invoice_date FROM Invoice WHERE invoice_id = ?";
+        String id = jdbcTemplate.queryForObject(sql, new Object[]{product}, String.class);
+        return id;
+    }
+    @DeleteMapping("/deleteProductFromInvoice/{productId}")
+    public ResponseEntity<?> deleteProductFromInvoice(@PathVariable int productId) {
+        try {
+            String sql = "DELETE FROM InvoiceProduct WHERE product_id = ?";
+            int rowsAffected = jdbcTemplate.update(sql, productId);
+
+            if (rowsAffected > 0) {
+                return ResponseEntity.ok("Product deleted successfully from the invoice.");
+            } else {
+                return ResponseEntity.badRequest().body("No product found with ID: " + productId);
+            }
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body("Error deleting product from invoice: " + e.getMessage());
+        }
+    }
+    ///Hassnain K functions Owner k
     @GetMapping("/getPopularItem")
     public String getPopularItem()
     {
-        String sql = "SELECT TOP 1 name\n" +
-                "FROM InvoiceProduct\n" +
-                "ORDER BY quantity DESC;\n";
+        String sql = ";WITH RankedProducts AS (\n" +
+                "    SELECT name, SUM(quantity) AS TotalQuantity\n" +
+                "    FROM InvoiceProduct\n" +
+                "    GROUP BY name\n" +
+                ")\n" +
+                "SELECT TOP (1) WITH TIES name\n" +
+                "FROM RankedProducts\n" +
+                "ORDER BY TotalQuantity DESC;\n";
         String name = jdbcTemplate.queryForObject(sql, String.class);
         return name;
     }
@@ -554,5 +635,28 @@ public class DatabaseController {
 
         return jdbcTemplate.queryForList(sql, startDate, endDate);
     }
+    @PutMapping("/UpdateProductQuantity2/{productId}")
+    public String updateProductQuantity2(@PathVariable int productId, @RequestParam int quantity) {
+        try {
+            // Define the SQL query to update the product quantity
+            String sql = "UPDATE Product SET unit_quantity = unit_quantity + ? WHERE product_id = ?";
 
+            // Execute the update
+            int rowsAffected = jdbcTemplate.update(sql, quantity, productId);
+            if (rowsAffected > 0) {
+                return "Product quantity updated successfully.";
+            } else {
+                return "No product found with ID: " + productId;
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "Failed to update product quantity. Error: " + e.getMessage();
+        }
+    }
+    @GetMapping("/getInvoiceProductQuant")
+    public Integer getInvoiceProductQuant(@RequestParam String productName) {
+        String sql = "SELECT quantity FROM InvoiceProduct WHERE name = ?";
+        Integer id = jdbcTemplate.queryForObject(sql, new Object[]{productName}, Integer.class);
+        return id;
+    }
 }
