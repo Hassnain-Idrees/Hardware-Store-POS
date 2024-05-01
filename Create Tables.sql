@@ -34,15 +34,14 @@ CREATE TABLE Product (
 );
 
 -- Invoice
-CREATE TABLE Invoice (
-  invoice_id INT PRIMARY KEY IDENTITY(1,1),
-  product_id INT,
-  name VARCHAR(255),
-  quantity INT,
-  unit VARCHAR(255),
-  gst DECIMAL(10,2),
-  total DECIMAL(10,2),
-  FOREIGN KEY (product_id) REFERENCES Product(product_id)
+CREATE TABLE InvoiceProductType (
+  product_id int NULL,
+  name varchar(255) NULL,
+  quantity int NULL,
+  unit varchar(50) NULL,
+  gst decimal(5, 2) NULL,
+  unit_price decimal(5, 2) NULL,
+  subtotal varchar (50) NULL
 );
 
 -- Returns
@@ -65,4 +64,22 @@ CREATE TABLE ForecastedSales (
   forecasted_week_start DATE,
   forecasted_week_end DATE,
   FOREIGN KEY (product_id) REFERENCES Product(product_id)
+);
+CREATE TABLE Invoice (
+  invoice_id int PRIMARY KEY NOT NULL,
+  customer_id int FOREIGN KEY REFERENCES dbo.Customer(customer_id) NULL,
+  invoice_date date NULL,
+  total varchar(50) NULL
+);
+CREATE TABLE InvoiceProduct (
+  invoice_id int ,
+  product_id int  ,
+  name varchar(255) NOT NULL,
+  quantity varchar(50) NULL,
+  unit varchar(50) NOT NULL,
+  unit_price varchar(50) NOT NULL,
+  gst varchar(50) NULL,
+  subtotal varchar(50) NOT NULL
+  invoice_id int FOREIGN KEY REFERENCES dbo.Invoice(invoice_id) NULL,
+  product_id int FOREIGN KEY REFERENCES dbo.Product(product_id) NULL
 );
