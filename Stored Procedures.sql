@@ -508,7 +508,40 @@ BEGIN
     END
 END;
 
+CREATE PROCEDURE  CreateInvoice
+    @customer_id INT,
+    @invoice_date DATE,
+    @total DECIMAL(10,2),
+    @products InvoiceProductType READONLY
+AS
+BEGIN
+    SET NOCOUNT ON;
 
+    DECLARE @invoice_id INT;  -- Declaration at the beginning of the procedure
+
+    BEGIN TRY
+        BEGIN TRANSACTION
+
+        -- Insert into Invoice table and capture the newly created invoice_id
+        INSERT INTO Invoice (customer_id, invoice_date, total)
+        VALUES (@customer_id, @invoice_date, @total);
+
+        SET @invoice_id = SCOPE_IDENTITY();
+
+        -- Insert all the products associated with this invoice into InvoiceProduct
+        INSERT INTO InvoiceProduct (invoice_id, product_id, name, quantity, unit, gst, unit_price, subtotal)
+        SELECT @invoice_id, product_id, name, quantity, unit, gst, unit_price, subtotal FROM @products;
+
+        COMMIT TRANSACTION;
+    END TRY
+    BEGIN CATCH
+        IF @@TRANCOUNT > 0
+            ROLLBACK TRANSACTION;
+
+        THROW;  -- Re-throw the caught exception to handle it at a higher level or log it
+    END CATCH
+END;
+GO
 
 
 
