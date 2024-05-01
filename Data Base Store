@@ -483,4 +483,76 @@ public class DatabaseController {
             return "Failed to insert invoice due to: " + e.getMessage();
         }
     }
+  ///Hassnain K functions Owner k
+    @GetMapping("/getPopularItem")
+    public String getPopularItem()
+    {
+        String sql = "SELECT TOP 1 name\n" +
+                "FROM InvoiceProduct\n" +
+                "ORDER BY quantity DESC;\n";
+        String name = jdbcTemplate.queryForObject(sql, String.class);
+        return name;
+    }
+    @GetMapping("/getAllProductsDesc")
+    public List<Map<String, Object>> getAllProductsDesc() {
+        String sql = "SELECT * FROM Product ORDER BY product_id DESC;\n";
+        List<Map<String, Object>> products = jdbcTemplate.queryForList(sql);
+        return products;
+    } @GetMapping("/getTotalUnitPrice")
+    public BigDecimal getTotalUnitPrice() {
+        String sql = "SELECT SUM(unit_price * unit_quantity) AS Total_Unit_Prices FROM Product";
+        BigDecimal totalUnitPrice = jdbcTemplate.queryForObject(sql, BigDecimal.class);
+        return totalUnitPrice;
+    }
+    @GetMapping("/getTotalSalesPrice")
+    public BigDecimal getTotalSalesPrice() {
+        String sql = "SELECT SUM(sales_price * unit_quantity) AS Total_Sales_Prices\n" +
+                "FROM Product;\n";
+        BigDecimal totalSalesPrice = jdbcTemplate.queryForObject(sql, BigDecimal.class);
+        return totalSalesPrice;
+    }
+    @GetMapping("/getExpectedProfit")
+    public BigDecimal getExpectedProfit() {
+        String sql = "SELECT SUM(sales_price * unit_quantity) - SUM(unit_price * unit_quantity) AS Expected_Profit FROM Product";
+        BigDecimal expectedProfit = jdbcTemplate.queryForObject(sql, BigDecimal.class);
+        return expectedProfit;
+    }
+    @GetMapping("/getInventoryAlerts")
+    public List<Map<String, Object>> getInventoryAlerts() {
+        String sql = "SELECT product_id ,name, unit_quantity\n" +
+                "FROM Product\n" +
+                "WHERE unit_quantity <= 5;";
+        List<Map<String, Object>> products = jdbcTemplate.queryForList(sql);
+        return products;
+    }
+    @GetMapping("/getSalesDetailsByDateRange")
+    public List<Map<String, Object>> getSalesDetailsByDateRange(
+            @RequestParam String startDate,
+            @RequestParam String endDate) {
+
+        String sql = """
+            SELECT 
+                I.invoice_date,
+                P.name,
+                P.company_name,
+                P.sales_price,
+                 SUM(IP.quantity * P.sales_price) AS total_price,
+                SUM(IP.quantity) AS total_quantity_sold
+            FROM 
+                Product P
+            JOIN 
+                InvoiceProduct IP ON P.product_id = IP.product_id
+            JOIN 
+                Invoice I ON I.invoice_id = IP.invoice_id
+            WHERE 
+                I.invoice_date BETWEEN ? AND ?
+            GROUP BY 
+                I.invoice_date, P.name, P.company_name, P.sales_price
+            ORDER BY 
+                I.invoice_date, P.name;
+            """;
+
+        return jdbcTemplate.queryForList(sql, startDate, endDate);
+    }
+
 }
