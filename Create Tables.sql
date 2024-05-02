@@ -66,20 +66,23 @@ CREATE TABLE ForecastedSales (
   FOREIGN KEY (product_id) REFERENCES Product(product_id)
 );
 CREATE TABLE Invoice (
-  invoice_id int PRIMARY KEY NOT NULL,
-  customer_id int FOREIGN KEY REFERENCES dbo.Customer(customer_id) NULL,
-  invoice_date date NULL,
-  total varchar(50) NULL
+  invoice_id INT IDENTITY(1,1) PRIMARY KEY,
+  customer_id INT NULL,
+  invoice_date DATE NULL,
+  total VARCHAR(50) NULL
 );
+
 CREATE TABLE InvoiceProduct (
-  invoice_id int ,
-  product_id int  ,
-  name varchar(255) NOT NULL,
-  quantity varchar(50) NULL,
-  unit varchar(50) NOT NULL,
-  unit_price varchar(50) NOT NULL,
-  gst varchar(50) NULL,
-  subtotal varchar(50) NOT NULL
-  invoice_id int FOREIGN KEY REFERENCES dbo.Invoice(invoice_id) NULL,
-  product_id int FOREIGN KEY REFERENCES dbo.Product(product_id) NULL
+  invoice_id INT,
+  product_id INT,
+  name VARCHAR(255),
+  quantity INT,                 -- Assuming quantity will be a whole number
+  unit VARCHAR(50),
+  unit_price VARCHAR(50),       -- Retaining VARCHAR as per your requirement
+  gst VARCHAR(50),              -- Retaining VARCHAR, useful if GST is inputted with extra information like "%"
+  subtotal VARCHAR(50),         -- Retaining VARCHAR as per your requirement
+
+  CONSTRAINT FK_InvoiceProduct_Invoice FOREIGN KEY (invoice_id) REFERENCES Invoice(invoice_id),
+  CONSTRAINT FK_InvoiceProduct_Product FOREIGN KEY (product_id) REFERENCES Product(product_id)
 );
+
