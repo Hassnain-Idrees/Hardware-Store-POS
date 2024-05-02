@@ -46,15 +46,12 @@ CREATE TABLE InvoiceProductType (
 
 -- Returns
 CREATE TABLE Returns (
-  return_id INT PRIMARY KEY IDENTITY(1,1),
-  product_id INT,
+  return_id INT PRIMARY KEY IDENTITY(1,1), -- Auto-increment primary key
   invoice_id INT,
   reason VARCHAR(255),
   date_return DATE,
-  FOREIGN KEY (product_id) REFERENCES Product(product_id),
-  FOREIGN KEY (invoice_id) REFERENCES Invoice(invoice_id)
+  CONSTRAINT FK_Returns_Invoice FOREIGN KEY (invoice_id) REFERENCES Invoice(invoice_id)
 );
-
 -- ForecastedSales
 CREATE TABLE ForecastedSales (
   forecast_id INT PRIMARY KEY IDENTITY(1,1),
